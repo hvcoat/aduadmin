@@ -41,6 +41,7 @@ func NewData(c *conf.Data, logger log.Logger) (*Data, func(), error) {
 	}
 
 	fileName := time.Now().Format("2006-01-02")
+	fileName = fmt.Sprintf("%d-%s", c.Group.Gid, fileName)
 
 	f, err := os.OpenFile(fileName+"-Login.csv", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
