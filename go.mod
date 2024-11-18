@@ -5,6 +5,8 @@ go 1.22.7
 require (
 	github.com/go-kratos/kratos/v2 v2.8.2
 	github.com/google/wire v0.6.0
+	github.com/gorilla/handlers v1.5.2
+	github.com/samber/lo v1.47.0
 	go.uber.org/automaxprocs v1.6.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20241104194629-dd2ea8efbc28
 	google.golang.org/grpc v1.68.0
@@ -13,6 +15,7 @@ require (
 
 require (
 	dario.cat/mergo v1.0.0 // indirect
+	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-kratos/aegis v0.2.0 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect

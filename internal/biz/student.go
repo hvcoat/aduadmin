@@ -4,13 +4,15 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/go-kratos/kratos/v2/log"
 )
 
 type Student struct{}
 
 type Task struct {
 	// 作业ID
-	ID int
+	ID string
 	// 作业内容
 	Content string
 }
@@ -21,10 +23,15 @@ type StudentRepo interface {
 	// 签到
 	Login(ctx context.Context, name string, number, ip string) error
 
+	// 获取签到汇总信息
+	ListSigns(ctx context.Context, date, gid, step string) ([]*StuSign, error)
+
 	// 根据ID获取作业
 	GetTask(ctx context.Context, id int) (string, error)
 	// 提交作业
 	SaveTask(ctx context.Context, name, number, ip string, task *Task) error
+	// 获取签到汇总信息
+	ListTaskSummary(ctx context.Context, date, gid, step string) ([]*StuTask, error)
 }
 
 type StudentUseCase struct {
@@ -57,4 +64,45 @@ func (s *StudentUseCase) GetTask(ctx context.Context, id int) (string, error) {
 
 func (s *StudentUseCase) SaveTask(ctx context.Context, name, number, ip string, task *Task) error {
 	return s.repo.SaveTask(ctx, name, number, ip, task)
+}
+
+type StuSign struct {
+	Name   string
+	Number string
+	IP     string
+	Date   string
+}
+
+type SignSummary struct {
+	Summary []*StuSign
+}
+
+func (s *StudentUseCase) ListSigns(ctx context.Context, date, gid, step string) (*SignSummary, error) {
+	stuSigns, err := s.repo.ListSigns(ctx, date, gid, step)
+	if err != nil {
+		log.Errorf("list signs error: %v, date: %s, gid: %s", err, date, gid)
+		return nil, err
+	}
+
+	return &SignSummary{
+		Summary: stuSigns,
+	}, nil
+}
+
+type StuTask struct {
+	Name   string
+	Number string
+	TaskID string
+	IP     string
+	Date   string
+}
+
+func (s *StudentUseCase) ListTaskSummary(ctx context.Context, date, gid, step string) ([]*StuTask, error) {
+	stuTasks, err := s.repo.ListTaskSummary(ctx, date, gid, step)
+	if err != nil {
+		log.Errorf("list task summary error: %v, date: %s, gid: %s", err, date, gid)
+		return nil, err
+	}
+
+	return stuTasks, nil
 }
