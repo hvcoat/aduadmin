@@ -13,8 +13,7 @@ data:
     addr: 127.0.0.1:6379
     read_timeout: 0.2s
     write_timeout: 0.2s
-  task_number: 10
   group:
-    name: 24级1班2组
-    gid: 2
+    name: 24级1班1组
+    gid: 1
     stus: 

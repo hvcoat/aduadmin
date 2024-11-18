@@ -39,8 +39,10 @@ message Data {
   message Group {
     string name = 1;
     int32 gid = 2;
+    repeated string stus = 3;
   }
   Database database = 1;
   Redis redis = 2;
   Group group = 3;
+  int32 task_number = 4;
 }

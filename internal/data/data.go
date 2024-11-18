@@ -32,6 +32,8 @@ type Data struct {
 	taskContent chan string
 	saveDone    chan bool
 	taskDone    chan bool
+
+	gid int32
 }
 
 // NewData .
@@ -40,8 +42,17 @@ func NewData(c *conf.Data, logger log.Logger) (*Data, func(), error) {
 		log.NewHelper(logger).Info("closing the data resources")
 	}
 
-	fileName := time.Now().Format("2006-01-02")
-	fileName = fmt.Sprintf("%d-%s", c.Group.Gid, fileName)
+	cl := ""
+	now := time.Now()
+	if now.Hour() < 12 {
+		// 上午的课
+		cl = "am"
+	} else {
+		// 下午的课
+		cl = "pm"
+	}
+	fileName := now.Format("2006-01-02")
+	fileName = fmt.Sprintf("%d-%s-%s", c.Group.Gid, fileName, cl)
 
 	f, err := os.OpenFile(fileName+"-Login.csv", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
@@ -62,6 +73,7 @@ func NewData(c *conf.Data, logger log.Logger) (*Data, func(), error) {
 		taskContent: make(chan string, 100), // 支持同时100个同学提交作业
 		saveDone:    make(chan bool),        // 保存完成
 		taskDone:    make(chan bool),        // 保存完成
+		gid:         c.Group.Gid,
 	}
 
 	go d.saveSign(context.TODO())

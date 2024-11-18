@@ -27,10 +27,6 @@ func (s *studentRepo) GetTask(ctx context.Context, id int) (string, error) {
 	if ok {
 		return t, nil
 	}
-	fmt.Println("number=", len(s.task))
-	for k, v := range s.task {
-		fmt.Println(k, ":", v)
-	}
 
 	return "", fmt.Errorf("task not found: %d", id)
 }
@@ -45,13 +41,29 @@ func (s *studentRepo) Login(ctx context.Context, name string, number string, ip 
 // SaveTask implements biz.StudentRepo.
 func (s *studentRepo) SaveTask(ctx context.Context, name string, number string, ip string, task *biz.Task) error {
 	t := time.Now().Format("2006-01-02-15:04:05")
-	s.data.SaveTask(ctx, "task", fmt.Sprintf("name:%s\tnumber:%s\ttime:%s\tip:%s\tcontent:%s", name, number, t, ip, task.Content))
+	s.data.SaveTask(ctx, "task", fmt.Sprintf("name:%s\tnumber:%s\ttask-id:%s\ttime:%s\tip:%s\tcontent:%s", name, number, task.ID, t, ip, task.Content))
 	return nil
 }
 
 // Sign implements biz.StudentRepo.
 func (s *studentRepo) Sign(ctx context.Context, name string, number string, ip string) (string, error) {
 	panic("unimplemented")
+}
+
+func (s *studentRepo) ListSigns(ctx context.Context, date, gid, step string) ([]*biz.StuSign, error) {
+	name := fmt.Sprintf("%s-%s-%s-Login.csv", gid, date, step)
+	stuSigns, err := signs(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return stuSigns, nil
+}
+
+func (s *studentRepo) ListTaskSummary(ctx context.Context, date, gid, step string) ([]*biz.StuTask, error) {
+	name := fmt.Sprintf("%s-%s-%s-Task.csv", gid, date, step)
+	stuTask, err := stuTasks(name)
+	return stuTask, err
 }
 
 // NewGreeterRepo .
@@ -102,4 +114,110 @@ func tasks() (map[string]string, error) {
 	}
 
 	return t, nil
+}
+
+func stuTasks(name string) ([]*biz.StuTask, error) {
+	file, err := os.Open(name)
+	if err != nil {
+		fmt.Printf("打开文件失败: %v, name:%s\n", name, err)
+		return nil, err
+	}
+	defer file.Close()
+
+	var ret []*biz.StuTask
+	reader := bufio.NewReader(file)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if err.Error() != "EOF" {
+				fmt.Printf("读取文件出错: %v\n", err)
+				return nil, err
+			}
+
+			if line == "" {
+				break
+			}
+		}
+
+		// 去除换行
+		line = line[:len(line)-1]
+		// ("name:%s\tnumber:%s\ttask-id:%d\ttime:%s\tip:%s\tcontent:%s", name, number, t, ip, task.Content))
+		datas := strings.Split(line, "\t")
+		if len(datas) != 6 {
+			log.Errorf("数据格式不正确,line=%s", line)
+			return nil, fmt.Errorf("数据格式不正确,line=%s", line)
+		}
+
+		date := segValue(datas[3])
+		lIndex := strings.LastIndex(date, "-")
+		date = date[:lIndex] + " " + date[lIndex+1:]
+
+		sign := &biz.StuTask{
+			Name:   segValue(datas[0]),
+			Number: segValue(datas[1]),
+			TaskID: segValue(datas[2]),
+			Date:   date,
+			IP:     segValue(datas[4]),
+		}
+
+		ret = append(ret, sign)
+	}
+
+	return ret, nil
+}
+
+func signs(name string) ([]*biz.StuSign, error) {
+	file, err := os.Open(name)
+	if err != nil {
+		fmt.Printf("打开文件失败: %v, name:%s\n", name, err)
+		return nil, err
+	}
+	defer file.Close()
+
+	var ret []*biz.StuSign
+	reader := bufio.NewReader(file)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if err.Error() != "EOF" {
+				fmt.Printf("读取文件出错: %v\n", err)
+				return nil, err
+			}
+
+			if line == "" {
+				break
+			}
+		}
+
+		line = line[:len(line)-1]
+		datas := strings.Split(line, "\t")
+		if len(datas) != 4 {
+			log.Errorf("数据格式不正确,line=%s", line)
+			return nil, fmt.Errorf("数据格式不正确,line=%s", line)
+		}
+
+		date := segValue(datas[2])
+		lIndex := strings.LastIndex(date, "-")
+		date = date[:lIndex] + " " + date[lIndex+1:]
+
+		sign := &biz.StuSign{
+			Name:   segValue(datas[0]),
+			Number: segValue(datas[1]),
+			Date:   date,
+			IP:     segValue(datas[3]),
+		}
+
+		ret = append(ret, sign)
+	}
+
+	return ret, nil
+}
+
+func segValue(value string) string {
+	index := strings.Index(value, ":")
+	if index == -1 {
+		return value
+	}
+
+	return value[index+1:]
 }

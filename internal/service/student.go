@@ -8,19 +8,25 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/go-kratos/kratos/v2/log"
+	"github.com/go-kratos/kratos/v2/transport/http"
+	transporthttp "github.com/go-kratos/kratos/v2/transport/http"
 
 	"hd/internal/biz"
-
-	"github.com/go-kratos/kratos/v2/transport/http"
+	"hd/internal/conf"
 )
 
 type StudentService struct {
-	stdUC *biz.StudentUseCase
+	stdUC      *biz.StudentUseCase
+	taskNumber int32
 }
 
-func NewStudentService(uc *biz.StudentUseCase) *StudentService {
+func NewStudentService(d *conf.Data, uc *biz.StudentUseCase) *StudentService {
 	return &StudentService{
-		stdUC: uc,
+		stdUC:      uc,
+		taskNumber: d.TaskNumber,
 	}
 }
 
@@ -32,6 +38,146 @@ func (s *StudentService) Sign(w http.ResponseWriter, req *http.Request) {
 	}
 
 	fmt.Fprint(w, sign)
+}
+
+func (s *StudentService) SignNew(ctx transporthttp.Context) error {
+	sign, err := s.stdUC.Sign(ctx)
+	if err != nil {
+		return err
+	}
+
+	ctx.Response().Write([]byte(sign))
+	return nil
+}
+
+func (s *StudentService) Pre(ctx transporthttp.Context) error {
+	type ss struct {
+		Name   string `json:"name"`
+		TaskID string `json:"task-id"`
+	}
+
+	ctx.Request().Header.Set("Content-Type", "application/json")
+	var sq ss
+	err := ctx.BindVars(&sq)
+	if err != nil {
+		return err
+	}
+	name := sq.Name
+	if name == "" {
+		return fmt.Errorf("name is empty")
+	}
+	name = fmt.Sprintf("./%s/%s", sq.TaskID, name)
+
+	for _, suffix := range []string{".png", ".jpg", ".jpeg"} {
+		payload, err := loadPic(name + suffix)
+		if err == nil {
+			ctx.Response().Header().Set("Content-Type", "image/png")
+			_, err = ctx.Response().Write(payload)
+			return err
+		}
+	}
+
+	return fmt.Errorf("not found")
+}
+
+func (s *StudentService) Index(ctx transporthttp.Context) error {
+
+	// 先暂时只能看当天情况列表
+	now := time.Now()
+	step := "am"
+	stepCH := "上午"
+	beginFirstClass := "08:40:00"
+	beginSencondClass := "10:30:00"
+	if now.After(time.Date(now.Year(), now.Month(), now.Day(), 12, 0, 0, 0, time.Local)) {
+		step = "pm"
+		stepCH = "下午"
+		beginFirstClass = "14:30:00"
+		beginSencondClass = "16:30:00"
+	}
+
+	date := now.Format("2006-01-02")
+	beginFirstClass = fmt.Sprintf(`%s-%s`, date, beginFirstClass)
+	beginSencondClass = fmt.Sprintf(`%s-%s`, date, beginSencondClass)
+
+	// 1组第一节课
+	// 1组第二节课
+	// 2组第一节课
+	// 2组第二节课
+	prefBlack := `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`
+	classHref := []string{
+		fmt.Sprintf(
+			`%s<a href="/list-signs?date=%s&gid=1&step=%s&start-class-time=%s">今天1组%s第一节课签到汇总</a>`,
+			prefBlack, date, step, beginFirstClass, stepCH),
+		fmt.Sprintf(
+			`%s<a href="/list-signs?date=%s&gid=1&step=%s&start-class-time=%s">今天1组%s第二节课签到汇总</a>`,
+			prefBlack, date, step, beginSencondClass, stepCH),
+		fmt.Sprintf(
+			`%s<a href="/list-signs?date=%s&gid=2&step=%s&start-class-time=%s">今天2组%s第一节课签到汇总</a>`,
+			prefBlack, date, step, beginFirstClass, stepCH),
+		fmt.Sprintf(
+			`%s<a href="/list-signs?date=%s&gid=2&step=%s&start-class-time=%s">今天2组%s第二节课签到汇总</a>`,
+			prefBlack, date, step, beginSencondClass, stepCH),
+	}
+
+	var taskList []string
+	for i := 1; i <= int(s.taskNumber); i++ {
+		taskList = append(taskList,
+			fmt.Sprintf(`%s<a href="/task?task-id=%d">作业%d</a>`, prefBlack, i, i),
+		)
+	}
+
+	// http://127.0.0.1:8000/list-tasks?date=2024-11-18&gid=2&step=am
+	taskSum := []string{
+		fmt.Sprintf(`%s<a href="/list-tasks?date=%s&gid=1&step=%s">1组%s作业汇总</a>`, prefBlack, date, step, stepCH),
+		fmt.Sprintf(`%s<a href="/list-tasks?date=%s&gid=2&step=%s">2组%s作业汇总</a>`, prefBlack, date, step, stepCH),
+	}
+
+	indexHtml := `<!DOCTYPE html>
+<html lang="en">
+<title>邯郸应用技术职业学院24级人工智能1班专用系统</title>
+<font size="6" color="red" align="center">邯郸应用技术职业学院24级人工智能1班专用系统</font>
+<h1>签到</h1>
+%s<a href="/sign">签到</a>
+<br/>
+<br/>
+%s
+
+<br/>
+
+<h1>作业</h1>
+%s
+<br/>
+<br/>
+%s
+<br/>
+
+</html>
+`
+
+	fh := fmt.Sprintf(indexHtml,
+		prefBlack,
+		strings.Join(classHref, "<br/>"),
+		strings.Join(taskSum, "<br/>"),
+		strings.Join(taskList, "<br/>"),
+	)
+	ctx.Response().Write([]byte(fh))
+	return nil
+}
+
+func loadPic(name string) ([]byte, error) {
+	image, err := os.Open(name)
+	if err != nil {
+		log.Errorf("open image error: %v", err)
+		return nil, err
+	}
+
+	defer image.Close()
+	payload, err := io.ReadAll(image)
+	if err != nil {
+		log.Errorf("read image error: %v", err)
+		return nil, err
+	}
+	return payload, nil
 }
 
 func (s *StudentService) saveTask2Risk(taskID, number, typ, ext string, reader io.Reader) error {
@@ -87,7 +233,14 @@ func (s *StudentService) SubmitTask(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
+		name := req.Form.Get("name")
+		name = strings.TrimSpace(name)
+		if name == "" {
+			fmt.Fprint(w, "姓名不能为空")
+			return
+		}
 		number := req.Form.Get("number")
+		number = strings.TrimSpace(number)
 		taskID := req.Form.Get("task-id")
 		if number == "" {
 			fmt.Fprint(w, "学号不能为空")
@@ -101,8 +254,15 @@ func (s *StudentService) SubmitTask(w http.ResponseWriter, req *http.Request) {
 				return
 			}
 		}
+		// 从RemoteAddr中提取IP部分
+		index := strings.Index(req.RemoteAddr, ":")
+		if index == -1 {
+			return
+		}
 
-		err = s.stdUC.SaveTask(req.Context(), number, taskID, req.RemoteAddr, &biz.Task{})
+		ip := req.RemoteAddr[:index]
+
+		err = s.stdUC.SaveTask(req.Context(), name, number, ip, &biz.Task{ID: taskID})
 		if err != nil {
 			fmt.Fprint(w, err.Error())
 			return
@@ -134,7 +294,9 @@ func (s *StudentService) Login(w http.ResponseWriter, req *http.Request) {
 	}
 
 	name := req.Form.Get("name")
+	name = strings.TrimSpace(name)
 	number := req.Form.Get("number")
+	number = strings.TrimSpace(number)
 	if name == "" || number == "" {
 		fmt.Fprint(w, "姓名或学号不能为空")
 		return

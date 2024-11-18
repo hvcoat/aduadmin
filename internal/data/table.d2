@@ -1,0 +1,155 @@
+student: {
+    // 学生
+    shape: sql_table
+    stu_id: int {constraint: primary_key}
+    name: varchar(200) // 姓名
+    number: varchar(200) // 学号
+    class_id: int // 班级，如24级
+    created_at: timestamp with time zone
+    updated_at: timestamp with time zone
+  }
+  
+  hd_class: {
+    // 班级
+    shape: sql_table
+    class_id: int {constraint: primary_key}
+    name: varchar(200) # 班级名称，如24级人工智能一班
+    created_at: timestamp with time zone
+    updated_at: timestamp with time zone
+  }
+  
+  course: {
+    // 课程
+    shape: sql_table
+    course_id: int {constraint: primary_key}
+    name: varchar(200) // 课程名称
+    teacher_id: int // 老师
+    school_year: int // 学年
+    semester: int // 学期
+    created_at: timestamp with time zone
+    updated_at: timestamp with time zone
+  }
+  
+  teacher: {
+    // 教师
+    shape: sql_table
+    teacher_id: int {constraint: primary_key}
+    name: varchar(200) // 教师名称
+    status: tinyint // 在职或离职
+    created_at: timestamp with time zone
+    updated_at: timestamp with time zone
+  }
+
+  counselor: {
+    // 辅导员
+    shape: sql_table
+    counserlor_id: int {constraint: primary_key}
+    name: varchar(200)
+    age: int
+    status: tinyint // 在职或离职
+    created_at: timestamp with time zone
+    updated_at: timestamp with time zone
+  }
+
+  counselor_class: {
+    // 辅导员管理的班级
+    shape: sql_table
+    counserlor_class_id: int {constraint:primary_key}
+    created_at: timestamp with time zone
+    updated_at: timestamp with time zone
+  }
+  
+  stu_course: {
+    // 学生与课程对应关系
+    shape: sql_table
+    stu_course_id: int {constraint: primary_key}
+    stu_id: int
+    course_id: int
+    group_id: int // 学生所在组
+    created_at: timestamp with time zone
+    updated_at: timestamp with time zone
+  }
+  
+  sign: {
+    // 签到表
+    shape: sql_table
+    sign_id: int {constraint: primary_key}
+    stu_id: int
+    cal_id: int
+    ip: varchar(200)
+    created_at: timestamp with time zone
+  }
+  
+  course_cal: {
+    // 每堂课程
+    shape: sql_table
+    cal_id: int {constraint: primary_key}
+    course_id: int // 非空字段
+    group_id: int  // 非空字段
+    room_id: varchar(200) // 教室编号
+    created_at: timestamp with time zone
+    updated_at: timestamp with time zone
+  }
+  
+  score: {
+    // 成绩
+    shape: sql_table
+    source_id: int {constraint: primary_key}
+    course_id: int
+    stu_id: int
+    daily_score: int
+    exam_score: int
+    score: int // 实际分数*100
+    created_at: timestamp with time zone
+    updated_at: timestamp with time zone
+  }
+  
+  exercise: {
+    // 练习题
+    shape: sql_table
+    exercise_id: int {constraint: primary_key}
+    content: varchar // 题目
+    created_at: timestamp with time zone
+    updated_at: timestamp with time zone
+  }
+  
+  cal_exercise: {
+    // 练习题与课堂关联关系
+    shape: sql_table
+    cal_exe_id: int {constraint: primary_key}
+    cal_id: int
+    exercise_id: int
+    created_at: timestamp with time zone
+    updated_at: timestamp with time zone
+  }
+  
+  stu_cal_exercise: {
+    // 学生提交课堂练习题
+    shape: sql_table
+    stu_cal_exe_id: int {constraint: primary_key}
+    cal_exe_id: int
+    stu_id: int
+    created_at: timestamp with time zone
+    updated_at: timestamp with time zone
+  }
+  
+  problem: {
+    // 预留问题
+    shape: sql_table
+    p1: 学生课程生成教学任务？教学分组？
+    p2: 上课时间
+  }
+
+  counselor.counserlor_id -> counselor_class.counserlor_id
+  counselor_class.counserlor_class_id -> hd_class.class_id
+  course_cal.cal_id -> cal_exercise.cal_id
+  exercise.exercise_id -> cal_exercise.exercise_id
+  cal_exercise.cal_exe_id -> stu_cal_exercise.cal_exe_id
+  student.stu_id -> hd_class.class_id
+  student.stu_id -> score.stu_id
+  course -> stu_course
+  student.stu_id -> stu_course.stu_id
+  student.stu_id -> sign.stu_id
+  course_cal.cal_id -> sign.cal_id
+  teacher.teacher_id -> course.teacher_id
+  
