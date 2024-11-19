@@ -164,7 +164,7 @@ func (stuS *StuSummaryService) ListTaskSummary(w http.ResponseWriter, req *http.
 		showStep = "下午"
 	}
 	fmt.Fprintf(w, `<h1 align="center">%s %s 第%s组 作业提交情况</h1>`, date, showStep, gid)
-	_, _ = fmt.Fprintf(w, `<table align="center" >
+	_, _ = fmt.Fprintf(w, `<table align="center">
 	<tr>
 		<th>序号</th>
 		<th>姓名</th>
@@ -202,7 +202,7 @@ func (stuS *StuSummaryService) ListTaskSummary(w http.ResponseWriter, req *http.
 		<td>%s</td>
 		<td>%s</td>
 		<td>
-			<image src="%s" width="300"></image>
+			<image src="%s"></image>
 		</td>
 		<td>%s</td>
 		</tr>`,

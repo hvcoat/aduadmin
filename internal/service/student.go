@@ -191,7 +191,7 @@ func (s *StudentService) saveTask2Risk(taskID, number, typ, ext string, reader i
 	}
 
 	name := filepath.Join(dir, fmt.Sprintf("%s-%s%s", number, typ, ext))
-	f, err := os.OpenFile(name, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0666)
+	f, err := os.OpenFile(name, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
 	if err != nil {
 		fmt.Printf("创建文件失败,err=%v,name=%s", err, name)
 		return fmt.Errorf("创建文件失败,err=%v", err)
