@@ -157,6 +157,13 @@ func (stuS *StuSummaryService) ListTaskSummary(w http.ResponseWriter, req *http.
         td {
             border: 1px solid black; /* 给表格、表头、单元格都添加1px的黑色边框，这样就会显示出竖线 */
         }
+		img {
+  		    transition: all 0.5s ease;
+    	}
+
+	    img:hover {
+ 		    transform: scale(2.5);
+    	}
     </style>
 </head>`)
 	showStep := "上午"
