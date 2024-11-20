@@ -81,12 +81,14 @@ func NewData(c *conf.Data, logger log.Logger) (*Data, func(), error) {
 
 	// TODO:先这么写
 	cleanup = func() {
-		log.NewHelper(logger).Info("closing the data resources")
+		log.NewHelper(logger).Info("closing the data resources start")
 		close(d.content)
+		close(d.taskContent)
 		<-d.saveDone
 		<-d.taskDone
 		f.Close()
 		ft.Close()
+		log.NewHelper(logger).Info("closing the data resources done")
 	}
 
 	return d, cleanup, nil
